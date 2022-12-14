@@ -1,16 +1,20 @@
 FROM nvidia/cuda:11.5.1-runtime-ubuntu20.04
 
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && \
     # system basic packages
-    apt install -y curl ssh systemd less vim htop zsh sudo jq unzip nfs-common && \
-    # tailscale repo
-    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg  && \
+    apt install -y curl ssh systemd less vim htop zsh sudo jq unzip nfs-common \
+        software-properties-common
+
+# tailscale repo
+RUN curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg  && \
     curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list && \
     # python repo
     add-apt-repository ppa:deadsnakes/ppa
-    # install extras
-    apt update && apt install -y tailscale python3-dev python3-venv sqlite3 && \
+
+# install extras
+RUN apt update && apt install -y tailscale python3-dev python3-venv sqlite3 && \
     apt-get clean
 
 # Don't start any optional services except for the few we need.
@@ -36,7 +40,8 @@ RUN chmod 664 /etc/systemd/system/ssh-host-key.service
 RUN systemctl enable ssh-host-key.service
 
 # pwdless user setup
-RUN useradd -ms /bin/bash && \
+RUN useradd -ms /bin/bash ml && \
+    usermod -aG sudo ml && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 ADD authorized_keys /home/ml/.ssh/authorized_keys

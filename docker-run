@@ -3,6 +3,8 @@
 NAME="sysdocker"
 exec docker run --rm --name "$NAME" \
     --tmpfs /tmp --tmpfs /run --tmpfs /run/lock \
+    --device /dev/net/tun \
+    --cap-add=NET_ADMIN \
     -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
     -p 2222:22 \
     cjalmeida/sysdocker
