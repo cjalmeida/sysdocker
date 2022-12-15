@@ -35,6 +35,19 @@ RUN python3.10 -m venv /venv && \
 
 # zsh goodies
 RUN curl -L git.io/antigen > /root/antigen.zsh
+RUN chsh -s /usr/bin/zsh root
 ADD zshrc /root/.zshrc
+
+# tailscale
+RUN curl -fsSL https://tailscale.com/install.sh | sh
+
+# vast cli
+RUN wget https://raw.githubusercontent.com/vast-ai/vast-python/master/vast.py \
+        -O /usr/local/bin/vast && \
+    chmod +x /usr/local/bin/vast 
+
+# start scripts
+ADD onstart.sh /root/onstart.sh
+
 
 CMD ["/bin/bash"]

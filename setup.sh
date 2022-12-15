@@ -11,3 +11,5 @@
 #   5. ZSH with spaceship prompt
 #   6. Git credentials
 
+apt-get install -y curl less vim htop zsh sudo jq unzip nfs-common systemd \
+    software-properties-common
