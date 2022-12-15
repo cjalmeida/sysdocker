@@ -1,52 +1,40 @@
-FROM nvidia/cuda:11.5.1-runtime-ubuntu20.04
+FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt update && \
+RUN apt-get update && \
     # system basic packages
-    apt install -y curl ssh systemd less vim htop zsh sudo jq unzip nfs-common \
+    apt-get install -y curl less vim htop zsh sudo jq unzip nfs-common systemd openssh-server \
         software-properties-common
 
-# tailscale repo
-RUN curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg  && \
-    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list && \
-    # python repo
-    add-apt-repository ppa:deadsnakes/ppa
-
-# install extras
-RUN apt update && apt install -y tailscale python3-dev python3-venv sqlite3 && \
+# install more python versions
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3-dev python3-venv sqlite3 python3.10 && \
     apt-get clean
 
-# Don't start any optional services except for the few we need.
-# Extras:
-#  1. SSH
-#  2. Tailscale
-RUN find /etc/systemd/system \
-    /lib/systemd/system \
-    -path '*.wants/*' \
-    -not -name '*journald*' \
-    -not -name '*systemd-tmpfiles*' \
-    -not -name '*systemd-user-sessions*' \
-    -not -name '*ssh*' \
-    -not -name '*tailscale*' \
-    -exec rm \{} \;
+# install cuda 11.5
+RUN cd /tmp && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb && \
+    dpkg -i cuda-keyring_1.0-1_all.deb && \
+    apt-get update && \
+    apt-get -y install cuda-11-5 && \
+    apt-get clean
 
-RUN systemctl set-default multi-user.target
-STOPSIGNAL SIGRTMIN+3
+# moar tools. consolidate with the top one
+RUN apt-get install -y git python3.10-full
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 
-# ssh setup
-COPY ssh-host-key.service /etc/systemd/system/
-RUN chmod 664 /etc/systemd/system/ssh-host-key.service
-RUN systemctl enable ssh-host-key.service
+# create a virtual environment to use
+RUN python3.10 -m venv /venv && \
+    /venv/bin/python -m pip install \
+        --no-cache-dir \
+        --extra-index-url https://download.pytorch.org/whl/cu115 \
+        torch torchvision torchaudio
 
-# pwdless user setup
-RUN useradd -ms /bin/bash ml && \
-    usermod -aG sudo ml && \
-    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-ADD authorized_keys /home/ml/.ssh/authorized_keys
-RUN chmod 700 /home/ml/.ssh && \
-    chown ml:ml /home/ml/.ssh -R && \
-    chmod 600 /home/ml/.ssh/authorized_keys 
+# zsh goodies
+RUN curl -L git.io/antigen > /root/antigen.zsh
+ADD zshrc /root/.zshrc
 
-CMD ["/sbin/init", "--log-target=journal"]
+CMD ["/bin/bash"]

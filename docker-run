@@ -6,5 +6,4 @@ exec docker run --rm --name "$NAME" \
     --device /dev/net/tun \
     --cap-add=NET_ADMIN \
     -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-    -p 2222:22 \
-    cjalmeida/sysdocker
+    -p 2222:22 $*
